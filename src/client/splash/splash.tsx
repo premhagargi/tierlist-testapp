@@ -8,6 +8,7 @@ import { TierMajoritySection } from '../components/Home/TierMajoritySection';
 import { useTiers } from '../hooks/useTiers';
 import { useListings } from '../hooks/useListings';
 import type { Listing } from '../../shared/types/api';
+import { SplashFeaturedBackground } from '../components/Home/SplashFeaturedBackground';
 
 const getAppId = async (): Promise<string | null> => {
   try {
@@ -167,6 +168,22 @@ export const Splash = () => {
   const [contributorCount, setContributorCount] = useState<number | null>(null);
   const [loadBackground, setLoadBackground] = useState(false);
   const [backgroundReady, setBackgroundReady] = useState(false);
+  const [featuredItem, setFeaturedItem] = useState<Listing | null>(null);
+
+  const { tiers, loading: tiersLoading } = useTiers(appId || '');
+
+  // Set background ready immediately when featuredItem is loaded
+  useEffect(() => {
+    if (featuredItem && !tiersLoading) {
+      setBackgroundReady(true);
+      // Set a default contributor count for featured mode (use listing's totalVotes as proxy)
+      if (featuredItem.totalVotes) {
+        setContributorCount(featuredItem.totalVotes);
+      } else {
+        setContributorCount(1);
+      }
+    }
+  }, [featuredItem, tiersLoading]);
 
   useEffect(() => {
     let bgTimer: number | undefined;
@@ -191,7 +208,7 @@ export const Splash = () => {
           if (data.data.appIconUri) setAppIconUri(data.data.appIconUri);
           if (data.data.backgroundColor) setBackgroundColor(data.data.backgroundColor);
           if (data.data.featuredItem) {
-            console.log('[Splash] Featured Item:', data.data.featuredItem);
+            setFeaturedItem(data.data.featuredItem);
           }
         }
       } catch (error) {
@@ -249,7 +266,14 @@ export const Splash = () => {
       onClick={(e) => requestExpandedMode(e.nativeEvent, 'game')}
     >
       {/* Background Layer */}
-      {appId && loadBackground && (
+      {appId && loadBackground && featuredItem && !tiersLoading && (
+        <SplashFeaturedBackground
+          listing={featuredItem}
+          tiers={tiers}
+        />
+      )}
+
+      {appId && loadBackground && !featuredItem && (
         <SplashBackground
           appId={appId}
           onStatsUpdate={setContributorCount}
