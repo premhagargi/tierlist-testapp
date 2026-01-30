@@ -1,0 +1,62 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "tierlist-testapp",
+  "post": {
+    "dir": "dist/client",
+    "entrypoints": {
+      "default": {
+        "inline": true,
+        "entry": "splash.html"
+      },
+      "game": {
+        "entry": "game.html"
+      }
+    }
+  },
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "media": {
+    "dir": "assets"
+  },
+  "permissions": {
+    "media": true,
+    "redis": true,
+    "reddit": {
+      "enable": true,
+      "asUser": [
+        "SUBMIT_POST"
+      ]
+    }
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Create Tier List Post",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/post-create",
+        "forUserType": "user"
+      }
+    ]
+  },
+  "forms": {
+    "postCreateForm": "/internal/form/post-create-submit"
+  },
+  "scheduler": {
+    "tasks": {
+      "TIER_LIST_SUMMARY_DM": {
+        "endpoint": "/internal/scheduler/tier-list-summary-dm"
+      },
+      "SEND_SUMMARY_DM": {
+        "endpoint": "/internal/scheduler/send-summary-dm"
+      }
+    }
+  },
+  "marketingAssets": {
+    "icon": "assets/app-icon.png"
+  },
+  "dev": {
+    "subreddit": "prem_devvit_test"
+  }
+}
