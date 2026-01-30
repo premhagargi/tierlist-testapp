@@ -5,9 +5,15 @@ import { CallToActionField } from './CallToActionField';
 import { ShortDescriptionField } from './ShortDescriptionField';
 import { VotingExpiryField } from './VotingExpiryField';
 import { SuggestionHandlingField } from './SuggestionHandlingField';
+import { useListings } from '../../../hooks/useListings';
 
 interface MiscSectionProps {
   appId: string;
+}
+
+interface LaunchItem {
+  id: string;
+  name: string;
 }
 
 export const MiscSection = ({ appId }: MiscSectionProps) => {
@@ -16,6 +22,16 @@ export const MiscSection = ({ appId }: MiscSectionProps) => {
   const [savedExpiry, setSavedExpiry] = useState<Date | null>(null);
   const [autoApproveSuggestions, setAutoApproveSuggestions] = useState(false);
 
+  const [featuredItem, setFeaturedItem] = useState<LaunchItem | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const { listings, loading: listingsLoading } = useListings(appId);
+
+  // Convert listings to LaunchItem format
+  const allItems: LaunchItem[] = listings.map((listing) => ({
+    id: listing.id,
+    name: listing.name || 'Unnamed',
+  }));
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -23,15 +39,18 @@ export const MiscSection = ({ appId }: MiscSectionProps) => {
         if (res.ok) {
           const data = await res.json();
           if (data.status === 'success' && data.data) {
-            setCallToAction(data.data.callToAction || '');
-            setShortDescription(data.data.shortDescription || '');
-            if (data.data.expiryDate) {
-              setSavedExpiry(new Date(data.data.expiryDate));
-            } else {
-              setSavedExpiry(null);
+            const d = data.data;
+
+            setCallToAction(d.callToAction || '');
+            setShortDescription(d.shortDescription || '');
+            setSavedExpiry(d.expiryDate ? new Date(d.expiryDate) : null);
+            if (typeof d.autoApproveSuggestions === 'boolean') {
+              setAutoApproveSuggestions(d.autoApproveSuggestions);
             }
-            if (typeof data.data.autoApproveSuggestions === 'boolean') {
-              setAutoApproveSuggestions(data.data.autoApproveSuggestions);
+
+            // ✅ NEW
+            if (d.featuredItem) {
+              setFeaturedItem(d.featuredItem); // { id, name }
             }
           }
         }
@@ -39,6 +58,7 @@ export const MiscSection = ({ appId }: MiscSectionProps) => {
         console.error('Failed to fetch misc settings:', error);
       }
     };
+
     fetchSettings();
   }, [appId]);
 
@@ -76,22 +96,38 @@ export const MiscSection = ({ appId }: MiscSectionProps) => {
     }
   };
 
-  const handleSaveSuggestionHandling = async () => {
+  const handleSaveSuggestionHandling = async (newFeaturedItem: LaunchItem | null) => {
+    setIsSaving(true);
+    // Get full listing data if featured item is selected
+    const fullFeaturedItem = newFeaturedItem
+      ? listings.find((l) => l.id === newFeaturedItem.id) || null
+      : null;
+
     try {
       const res = await fetch(`/api/misc/${appId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ autoApproveSuggestions }),
+        body: JSON.stringify({
+          autoApproveSuggestions,
+          featuredItemId: newFeaturedItem?.id ?? null,
+          featuredItem: fullFeaturedItem, // Store full listing data (null if clearing)
+        }),
       });
+
       if (res.ok) {
-        showToast({ text: 'Suggestion Handling Updated', appearance: 'success' });
+        setFeaturedItem(newFeaturedItem); // Can be null to clear
+        showToast({ text: 'Settings Updated', appearance: 'success' });
       } else {
-        showToast('Failed to update suggestion handling');
+        showToast('Failed to update settings');
       }
     } catch (error) {
-      showToast('Failed to update suggestion handling');
+      console.error('[MiscSection] Error saving suggestion handling:', error);
+      showToast('Failed to update settings');
+    } finally {
+      setIsSaving(false);
     }
   };
+
 
   const handleSaveExpiry = async (expiryDate: Date | null) => {
     try {
@@ -140,6 +176,11 @@ export const MiscSection = ({ appId }: MiscSectionProps) => {
         <VotingExpiryField savedExpiry={savedExpiry} onSave={handleSaveExpiry} />
 
         <SuggestionHandlingField
+          allItems={allItems}
+          fullListings={listings}
+          featuredItem={featuredItem}
+          onFeaturedChange={setFeaturedItem}
+          isSaving={isSaving}
           mode={autoApproveSuggestions ? 'auto-approve' : 'admin-review'}
           onChange={(mode) => setAutoApproveSuggestions(mode === 'auto-approve')}
           onSave={handleSaveSuggestionHandling}

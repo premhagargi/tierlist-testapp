@@ -181,14 +181,17 @@ export const Splash = () => {
 
       try {
         const res = await fetch(`/api/misc/${id}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'success' && data.data) {
-            if (data.data.callToAction) setCallToAction(data.data.callToAction);
-            if (data.data.shortDescription) setShortDescription(data.data.shortDescription);
-            if (data.data.expiryDate) setExpiryDate(new Date(data.data.expiryDate));
-            if (data.data.appIconUri) setAppIconUri(data.data.appIconUri);
-            if (data.data.backgroundColor) setBackgroundColor(data.data.backgroundColor);
+        const data = await res.json();
+        console.log('[Splash] /api/misc response:', data);
+
+        if (res.ok && data.status === 'success' && data.data) {
+          if (data.data.callToAction) setCallToAction(data.data.callToAction);
+          if (data.data.shortDescription) setShortDescription(data.data.shortDescription);
+          if (data.data.expiryDate) setExpiryDate(new Date(data.data.expiryDate));
+          if (data.data.appIconUri) setAppIconUri(data.data.appIconUri);
+          if (data.data.backgroundColor) setBackgroundColor(data.data.backgroundColor);
+          if (data.data.featuredItem) {
+            console.log('[Splash] Featured Item:', data.data.featuredItem);
           }
         }
       } catch (error) {
@@ -258,10 +261,10 @@ export const Splash = () => {
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/15 via-black/70 to-black/100"></div>
       <div
         className="absolute inset-0 pointer-events-none
-  bg-gradient-to-b
-  from-black/80 from-0%
-  to-transparent to-20%
-"
+   bg-gradient-to-b
+   from-black/80 from-0%
+   to-transparent to-20%
+  "
       ></div>
 
       {/* Top Bar - Header */}

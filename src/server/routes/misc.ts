@@ -18,6 +18,15 @@ export interface MiscSettings {
   appIconUri?: string;
   backgroundColor?: string;
   autoApproveSuggestions?: boolean;
+  featuredItemId?: string | null;
+  featuredItem?: {
+    id: string;
+    name: string;
+    imageUrl?: string;
+    categoryId?: string;
+    category?: string;
+    url?: string;
+  } | null;
 }
 
 export interface MiscResponse {
@@ -100,7 +109,7 @@ export const saveMiscSettings = async (
 router.post<{ appId: string }, MiscResponse>('/misc/:appId', async (req, res): Promise<void> => {
   try {
     const { appId } = req.params;
-    const { callToAction, shortDescription, expiryDate, autoApproveSuggestions } =
+    const { callToAction, shortDescription, expiryDate, autoApproveSuggestions, featuredItemId, featuredItem } =
       req.body as Partial<MiscSettings>;
 
     // Use the shared helper
@@ -109,6 +118,8 @@ router.post<{ appId: string }, MiscResponse>('/misc/:appId', async (req, res): P
       ...(shortDescription !== undefined && { shortDescription }),
       ...(expiryDate !== undefined && { expiryDate }),
       ...(autoApproveSuggestions !== undefined && { autoApproveSuggestions }),
+      ...(featuredItemId !== undefined && { featuredItemId }),
+      ...(featuredItem !== undefined && { featuredItem }),
     });
 
     res.json({
