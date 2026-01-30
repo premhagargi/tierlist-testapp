@@ -335,7 +335,11 @@ export const Splash = () => {
       )}
 
       {/* Bottom Content Area */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center justify-end pb-12 pt-24 px-6 text-center">
+        <div
+          className={`absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center justify-end px-6 text-center ${
+            featuredItem ? 'pb-8 pt-40' : 'pb-6 pt-24'
+          }`}
+        >
           <h1 className="text-2xl font-semibold text-white mb-6 drop-shadow-lg max-w-lg mx-auto leading-tight">
             {mainTitle}
           </h1>
