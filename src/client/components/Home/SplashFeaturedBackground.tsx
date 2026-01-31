@@ -1,4 +1,5 @@
 import { TierButtons } from "../Voting/TierButtons";
+import { SkipReport } from "../Voting/SkipReport";
 import type { Listing } from '../../../shared/types/api';
 import { Tier } from "../Voting/types";
 import { SelectedListing } from "../Voting/SelectedListing";
@@ -28,7 +29,7 @@ export const SplashFeaturedBackground = ({
 
   return (
     <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-stretch gap-4 sm:gap-4 md:gap-4 px-4 pt-6">
+      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-stretch gap-4 sm:gap-4 md:gap-4 px-4 pt-12">
         <div className="w-full sm:basis-1/2 pt-3">
           <SelectedListing
             listing={votingListing}
@@ -40,24 +41,30 @@ export const SplashFeaturedBackground = ({
         <div className="w-full sm:basis-1/2 sm:pt-2 pt-0 sm:px-0 px-1 flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2 px-1">
             <div className="space-y-0.5">
-              <p className="text-base font-semibold">Community Ranking</p>
+              <p className="text-base font-semibold">Submit Vote</p>
             </div>
             <span className="text-sm text-gray-500 whitespace-nowrap">
               {totalVotes} Votes
             </span>
           </div>
 
-          <TierButtons
-            tiers={tiers}
-            selectedListing={votingListing}
-            totalVotes={totalVotes}
-            showResults={true}
-            isVoting={false}
-            votingTier={null}
-            userVote={null}
-            lastVotedTier={null}
-            onVote={() => {}} // 🔒 noop
-            isExpired={false} // 🔒 show colors, just disable voting
+          <div className="">
+            <TierButtons
+              tiers={tiers}
+              selectedListing={votingListing}
+              totalVotes={totalVotes}
+              showResults={false}
+              isVoting={false}
+              votingTier={null}
+              userVote={null}
+              lastVotedTier={null}
+              onVote={() => {}} // 🔒 noop
+              isExpired={false} // 🔒 show colors, just disable voting
+            />
+          </div>
+          <SkipReport
+            onSkip={() => {}}
+            onToggleReport={() => {}}
           />
         </div>
       </div>

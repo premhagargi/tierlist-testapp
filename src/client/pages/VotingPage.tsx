@@ -17,9 +17,10 @@ interface VotingPageProps {
   avatarUrl: string | null;
   userId: string | null;
   appId: string;
+  onAutoSkipChange?: (isAutoSkipping: boolean) => void;
 }
 
-export const VotingPage = ({ displayName, userId, appId }: VotingPageProps) => {
+export const VotingPage = ({ displayName, userId, appId, onAutoSkipChange }: VotingPageProps) => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
@@ -40,6 +41,7 @@ export const VotingPage = ({ displayName, userId, appId }: VotingPageProps) => {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showSuggestionForm, setShowSuggestionForm] = useState(false);
   const [suggestionSubmitting, setSuggestionSubmitting] = useState(false);
+  const [isAutoSkipping, setIsAutoSkipping] = useState(false);
 
   const { categories, loading: categoriesLoading, refetch: refetchCategories } = useCategories(appId);
   const { createSuggestion } = useSuggestions(appId);
@@ -132,6 +134,12 @@ export const VotingPage = ({ displayName, userId, appId }: VotingPageProps) => {
   useEffect(() => {
     setLastVotedTier(userVote);
   }, [userVote]);
+
+  // Notify parent when auto-skip state changes
+  useEffect(() => {
+    console.log('[AutoSkip] State changed, notifying parent:', isAutoSkipping);
+    onAutoSkipChange?.(isAutoSkipping);
+  }, [isAutoSkipping, onAutoSkipChange]);
 
   useEffect(() => {
     // Reset filters when app changes to avoid stale values
@@ -262,8 +270,65 @@ export const VotingPage = ({ displayName, userId, appId }: VotingPageProps) => {
     }
   }, [listings, selectedListing]);
 
+  const autoSkipAfterVote = () => {
+    if (!userId) {
+      console.log('[AutoSkip] No userId, skipping auto-skip');
+      return;
+    }
+
+    console.log('[AutoSkip] Starting auto-skip process');
+    console.log('[AutoSkip] Current selected listing ID:', selectedListing?.id, 'name:', selectedListing?.name);
+    console.log('[AutoSkip] User has voted on this item:', selectedListing?.userVotes?.[userId] ? 'yes' : 'no');
+    console.log('[AutoSkip] Total listings:', listings.length);
+
+    // Force re-sort by creating a new sorted array (to ensure we have updated vote data)
+    const reSortedListings = [...listings].sort((a, b) => {
+      const votesA = a.totalVotes ?? (a.votes ? Object.values(a.votes).reduce((sum, v) => sum + v, 0) : 0);
+      const votesB = b.totalVotes ?? (b.votes ? Object.values(b.votes).reduce((sum, v) => sum + v, 0) : 0);
+      if (votesA !== votesB) return votesB - votesA;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    console.log('[AutoSkip] Re-sorted listings count:', reSortedListings.length);
+
+    // Find next unvoted item from re-sorted list
+    // Also exclude the current item to avoid re-selecting it if state is stale
+    const unvotedItems = reSortedListings.filter(item => {
+      const hasVoted = item.userVotes?.[userId];
+      const isCurrentItem = item.id === selectedListing?.id;
+      console.log('[AutoSkip] Checking item:', item.id, item.name, 'hasVoted:', hasVoted ? 'yes' : 'no', 'isCurrentItem:', isCurrentItem);
+      return item && !hasVoted && !isCurrentItem;
+    });
+
+    console.log('[AutoSkip] Unvoted items found:', unvotedItems.length);
+    unvotedItems.forEach((item, i) => {
+      console.log(`[AutoSkip] Unvoted item ${i}:`, item.id, item.name, 'votes:', item.totalVotes);
+    });
+
+    if (unvotedItems.length > 0) {
+      // Get the most popular unvoted item (already sorted by votes desc, then newest)
+      const nextItem = unvotedItems[0] as Listing;
+      console.log('[AutoSkip] Selecting most popular unvoted item:', nextItem.id, nextItem.name, 'votes:', nextItem.totalVotes);
+      handleThumbnailClick(nextItem);
+      console.log('[AutoSkip] handleThumbnailClick called, new selectedListing should be:', nextItem.id);
+      // Hide loader immediately when next item is shown
+      setIsAutoSkipping(false);
+      console.log('[AutoSkip] Loader hidden');
+    } else {
+      // All items voted, show completion modal
+      console.log('[AutoSkip] All items voted, showing completion modal');
+      setIsAutoSkipping(false);
+      setShowCompletionModal(true);
+    }
+  };
+
   const handleVote = async (tierName: string) => {
-    if (!selectedListing || isVoting || userVote) return;
+    if (!selectedListing || isVoting || userVote) {
+      console.log('[handleVote] Aborting vote:', { hasSelectedListing: !!selectedListing, isVoting, hasUserVote: !!userVote });
+      return;
+    }
     setIsVoting(true);
     setVotingTier(tierName);
     try {
@@ -274,17 +339,34 @@ export const VotingPage = ({ displayName, userId, appId }: VotingPageProps) => {
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        console.log('[handleVote] Vote API error:', res.status, errorData.message);
         if (res.status === 403 && errorData.message === 'Voting has expired') {
           alert('Voting has expired. You can no longer vote.');
+        } else if (res.status === 409) {
+          // Already voted - refresh to get updated state and don't auto-skip
+          console.log('[handleVote] Already voted, refreshing state');
+          await refreshSelectedListing(selectedListing.id);
+          setIsAutoSkipping(false);
+          return;
         } else {
           throw new Error(errorData.message || 'Failed to submit vote');
         }
         return;
       }
+      console.log('[handleVote] Vote successful, tier:', tierName);
       setLastVotedTier(tierName);
       await refreshSelectedListing(selectedListing.id);
+      // Start the loader immediately so user can see their vote
+      setIsAutoSkipping(true);
+      console.log('[handleVote] Loader started');
+      // After 1 second (loader completes), auto-skip to next item
+      setTimeout(() => {
+        console.log('[AutoSkip] Loader finished, now skipping to next item');
+        autoSkipAfterVote();
+      }, 1000);
     } catch (error) {
       console.error('Error submitting vote', error);
+      setIsAutoSkipping(false);
     } finally {
       setIsVoting(false);
       setVotingTier(null);
@@ -292,6 +374,7 @@ export const VotingPage = ({ displayName, userId, appId }: VotingPageProps) => {
   };
 
   const handleThumbnailClick = (item: Listing) => {
+    console.log('[handleThumbnailClick] Setting selectedListing to:', item.id, item.name);
     setSelectedListing(item);
     setShowReportForm(false);
     setReportReason('');

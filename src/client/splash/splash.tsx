@@ -282,7 +282,12 @@ export const Splash = () => {
       )}
 
       {/* Heavy Vignette / Overlay for Readability */}
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/15 via-black/70 to-black/100"></div>
+      {!featuredItem && (
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/15 via-black/70 to-black/100"></div>
+      )}
+      {featuredItem && (
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/15 via-black/40 to-black/80"></div>
+      )}
       <div
         className="absolute inset-0 pointer-events-none
    bg-gradient-to-b

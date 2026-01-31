@@ -31,6 +31,13 @@ export const App = () => {
 
   const [currentPage, setCurrentPage] = useState<Page>('home');
 
+  const [isAutoSkipping, setIsAutoSkipping] = useState(false);
+
+  // Log auto-skip state changes
+  useEffect(() => {
+    console.log('[App] isAutoSkipping changed:', isAutoSkipping);
+  }, [isAutoSkipping]);
+
   const [showNavSuggestion, setShowNavSuggestion] = useState(false);
   const [navSubmitting, setNavSubmitting] = useState(false);
   const addSuggestionRequestId = 0;
@@ -136,6 +143,7 @@ export const App = () => {
             avatarUrl={avatarUrl}
             userId={userId}
             appId={appId}
+            onAutoSkipChange={setIsAutoSkipping}
           />
         );
       case 'terms':
@@ -170,6 +178,7 @@ export const App = () => {
         statsLabel={karma ? `${karma.total.toLocaleString()} Votes` : 'Votes'}
         onSuggestItem={() => setShowNavSuggestion(true)}
         isExpired={isExpired}
+        isAutoSkipping={isAutoSkipping}
       />
       <div className="pt-8">{renderPage()}</div>
 

@@ -4,6 +4,7 @@ import DefaultAvatar from '../../../assets/Icon.svg';
 import { useAuthStatus } from '../hooks/useAuthStatus';
 import { navigateTo } from '@devvit/web/client';
 import { CirclePlusIcon, Plus, SquarePlusIcon } from 'lucide-react';
+import { CreateTierListDialog } from './CreateTierListDialog';
 
 const navStyles = {
   container: 'fixed top-0 left-0 z-50 w-full bg-[#0E1113] border-b border-[#2A3236] text-white',
@@ -57,6 +58,7 @@ interface NavbarProps {
   feedbackHref?: string;
   onSuggestItem: () => void;
   isExpired?: boolean;
+  isAutoSkipping?: boolean;
 }
 
 export const Navbar = ({
@@ -67,9 +69,15 @@ export const Navbar = ({
   avatarUrl,
   onSuggestItem,
   isExpired,
+  isAutoSkipping,
 }: NavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleCreateTierList = (postUrl: string) => {
+    navigateTo(postUrl);
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -128,24 +136,37 @@ export const Navbar = ({
               const activeExtra = '';
 
               return (
-                <button
-                  key={link.id}
-                  onClick={link.action}
-                  disabled={isVotingLink && isExpired}
-                  className={`${navStyles.linkBase} ${
-                    isActive ? navStyles.linkActive : navStyles.linkIdle
-                  } ${
-                    isVotingLink && isExpired ? 'opacity-50 grayscale cursor-not-allowed' : ''
-                  }${activeExtra} flex items-center`}
-                >
-                  {link.label}
-                  {isVotingLink && !isExpired && (
-                    <span className="relative flex h-1.25 w-1.25 ml-1.5 -mt-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.25 w-1.25 bg-[#0079D3]"></span>
-                    </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    key={link.id}
+                    onClick={link.action}
+                    disabled={isVotingLink && isExpired}
+                    className={`${navStyles.linkBase} ${
+                      isActive ? navStyles.linkActive : navStyles.linkIdle
+                    } ${
+                      isVotingLink && isExpired ? 'opacity-50 grayscale cursor-not-allowed' : ''
+                    }${activeExtra} flex items-center`}
+                  >
+                    {link.label}
+                    {isVotingLink && !isExpired && (
+                      <span className="relative flex h-1.25 w-1.25 ml-1.5 -mt-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.25 w-1.25 bg-[#0079D3]"></span>
+                      </span>
+                    )}
+                  </button>
+                  {isVotingLink && (
+                    <button
+                      type="button"
+                      className={`${navStyles.statsButton}`}
+                      aria-label="Add an item"
+                      onClick={onSuggestItem}
+                      disabled={isExpired}
+                    >
+                      <span>Add Item</span>
+                    </button>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -154,15 +175,12 @@ export const Navbar = ({
         <div className={navStyles.actions}>
           <button
             type="button"
-            className={`${navStyles.statsButton} ${
-              isExpired ? 'opacity-50 grayscale cursor-not-allowed' : ''
-            }`}
-            aria-label="Suggest an item"
-            onClick={onSuggestItem}
-            disabled={isExpired}
+            className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold text-white cursor-pointer whitespace-nowrap border border-gray-500"
+            aria-label="Create new tier list"
+            onClick={() => setShowCreateDialog(true)}
           >
-            <Plus strokeWidth={1.5} className="h-5 w-5 font-light" />
-            <span>Suggest Item</span>
+            <Plus strokeWidth={1.5} className="h-4 w-4" />
+            <span>Create</span>
           </button>
 
           <button
@@ -349,7 +367,16 @@ export const Navbar = ({
             </div>
           )}
         </div>
+
+        <CreateTierListDialog
+          isOpen={showCreateDialog}
+          onClose={() => setShowCreateDialog(false)}
+          onCreated={handleCreateTierList}
+        />
       </div>
+      {isAutoSkipping && (
+        <div className="h-1 w-full bg-[#3EA6FF] animate-progress-loader" />
+      )}
     </nav>
   );
 };

@@ -588,3 +588,17 @@ body {
     clip-path: inset(0 -34% 0 0);
   }
 }
+
+/* Auto-skip progress bar loader */
+@keyframes progress-loader {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-progress-loader {
+  animation: progress-loader 1s linear forwards;
+}
